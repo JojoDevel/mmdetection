@@ -62,6 +62,15 @@ def anns_to_mask(annotations, height, width):
 
     return np.any(decode([ann['segmentation'] for ann in annotations]).astype(np.bool), axis=-1)
 
+def pad_img_to_size(img, desired_size):
+    height, width = img.shape[:2]
+    d_height, d_width = desired_size
+
+    assert height <= d_height and width <= d_width
+
+    # zero padding
+    return np.pad(img, [(0, d_height - height), (0, d_width-width)])
+
 @DATASETS.register_module()
 class CocoPixelDataset(CocoDataset):
 
@@ -252,6 +261,12 @@ class CocoPixelDataset(CocoDataset):
 
                     full_gt_mask.append(gt_mask)
                     full_dt_mask.append(dt_mask)
+                
+                max_size = np.max([mask.shape[:2] for mask in full_gt_mask], axis=0)
+
+                for i,_ in enumerate(full_gt_mask):
+                    full_gt_mask[i] = pad_img_to_size(full_gt_mask[i], max_size)
+                    full_dt_mask[i] = pad_img_to_size(full_dt_mask[i], max_size)
 
                 full_gt_mask = np.stack(full_gt_mask)
                 full_dt_mask = np.stack(full_dt_mask)
