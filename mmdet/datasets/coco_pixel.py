@@ -8,6 +8,7 @@ import numpy as np
 from mmcv.utils import print_log
 from pycocotools.cocoeval import COCOeval
 from terminaltables import AsciiTable
+import mmcv
 
 from .builder import DATASETS
 from .coco import CocoDataset
