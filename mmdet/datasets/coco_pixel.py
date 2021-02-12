@@ -64,6 +64,47 @@ def anns_to_mask(annotations, height, width):
 @DATASETS.register_module()
 class CocoPixelDataset(CocoDataset):
 
+    def results2json(self, results, outfile_prefix):
+        """Dump the detection results to a COCO style json file.
+
+        There are 3 types of results: proposals, bbox predictions, mask
+        predictions, and they have different data types. This method will
+        automatically recognize the type, and dump them to json files.
+
+        Args:
+            results (list[list | tuple | ndarray]): Testing results of the
+                dataset.
+            outfile_prefix (str): The filename prefix of the json files. If the
+                prefix is "somepath/xxx", the json files will be named
+                "somepath/xxx.bbox.json", "somepath/xxx.segm.json",
+                "somepath/xxx.proposal.json".
+
+        Returns:
+            dict[str: str]: Possible keys are "bbox", "segm", "proposal", and \
+                values are corresponding filenames.
+        """
+        result_files = dict()
+        if isinstance(results[0], list):
+            json_results = self._det2json(results)
+            result_files['bbox'] = f'{outfile_prefix}.bbox.json'
+            result_files['proposal'] = f'{outfile_prefix}.bbox.json'
+            mmcv.dump(json_results, result_files['bbox'])
+        elif isinstance(results[0], tuple):
+            json_results = self._segm2json(results)
+            result_files['bbox'] = f'{outfile_prefix}.bbox.json'
+            result_files['proposal'] = f'{outfile_prefix}.bbox.json'
+            result_files['segm'] = f'{outfile_prefix}.segm.json'
+            result_files['pixel'] = f'{outfile_prefix}.segm.json'
+            mmcv.dump(json_results[0], result_files['bbox'])
+            mmcv.dump(json_results[1], result_files['segm'])
+        elif isinstance(results[0], np.ndarray):
+            json_results = self._proposal2json(results)
+            result_files['proposal'] = f'{outfile_prefix}.proposal.json'
+            mmcv.dump(json_results, result_files['proposal'])
+        else:
+            raise TypeError('invalid type of results')
+        return result_files
+
     def evaluate(self,
                  results,
                  metric='bbox',
